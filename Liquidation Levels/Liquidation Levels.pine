@@ -1,0 +1,103 @@
+//
+// @author Mrgunkin [GitHub Profile](https://github.com/mrgunkin)
+//
+//@version=6
+indicator("Liquidation Levels", shorttitle="Liq Levels", overlay=true)
+
+// Ввод базовой цены вручную
+inputPrice = input.float(50000, title="Manual Base Price") 
+
+// Входные параметры
+i_nonlinear = input(true, title="Nonlinear Contract (e.g. COIN-M)")
+i_maintmargin = input.float(0.05, title="Maintenance Margin above Liquidation")
+maint_margin = 1 - i_maintmargin
+
+// Плечи
+i_x1 = input.float(5, title="Level #1")
+i_x2 = input.float(10, title="Level #2")
+i_x3 = input.float(20, title="Level #3")
+i_x4 = input.float(50, title="Level #4")
+i_x5 = input.float(100, title="Level #5")
+
+// Параметры отображения
+i_show_longs = input(true, title="Show long levels")
+i_show_shorts = input(true, title="Show short levels")
+i_show_x1 = input(true, title="Show Level 1 Labels")
+i_show_x2 = input(true, title="Show Level 2 Labels")
+i_show_x3 = input(true, title="Show Level 3 Labels")
+i_show_x4 = input(true, title="Show Level 4 Labels")
+i_show_x5 = input(true, title="Show Level 5 Labels")
+
+i_showlast = input.int(1, title="Only Show Last X Bars (0 = all)")
+i_offset = input.int(0, title="Projection offset")
+i_label_offset = input.int(5, title="Level Label Offset")
+
+// Цвета уровней
+c_x1 = input.color(color.aqua, title="Level 1 Colour")
+c_x2 = input.color(color.lime, title="Level 2 Colour")
+c_x3 = input.color(color.yellow, title="Level 3 Colour")
+c_x4 = input.color(color.orange, title="Level 4 Colour")
+c_x5 = input.color(color.red, title="Level 5 Colour")
+c_base = color.gray // Цвет для Base Price
+
+// Функция расчета ликвидационных уровней
+liqLevel(_price, _x) =>
+    _xlong = i_nonlinear ? _x + 1 : _x
+    _xshort = i_nonlinear ? _x - 1 : _x
+    _liq_long = _price * (1 - (1 / _xlong * maint_margin))
+    _liq_short = _price * (1 + (1 / _xshort * maint_margin))
+    [_liq_long, _liq_short]
+
+// Расчет уровней
+[x1_long, x1_short] = liqLevel(inputPrice, i_x1)
+[x2_long, x2_short] = liqLevel(inputPrice, i_x2)
+[x3_long, x3_short] = liqLevel(inputPrice, i_x3)
+[x4_long, x4_short] = liqLevel(inputPrice, i_x4)
+[x5_long, x5_short] = liqLevel(inputPrice, i_x5)
+
+// Отображение уровней
+plot(inputPrice, title="Base Price", color=c_base, offset=i_offset, show_last=i_showlast) 
+plot(x1_long, title="L1 Long", color=c_x1, offset=i_offset, show_last=i_showlast)
+plot(x2_long, title="L2 Long", color=c_x2, offset=i_offset, show_last=i_showlast)
+plot(x3_long, title="L3 Long", color=c_x3, offset=i_offset, show_last=i_showlast)
+plot(x4_long, title="L4 Long", color=c_x4, offset=i_offset, show_last=i_showlast)
+plot(x5_long, title="L5 Long", color=c_x5, offset=i_offset, show_last=i_showlast)
+
+plot(x1_short, title="L1 Short", color=c_x1, offset=i_offset, show_last=i_showlast)
+plot(x2_short, title="L2 Short", color=c_x2, offset=i_offset, show_last=i_showlast)
+plot(x3_short, title="L3 Short", color=c_x3, offset=i_offset, show_last=i_showlast)
+plot(x4_short, title="L4 Short", color=c_x4, offset=i_offset, show_last=i_showlast)
+plot(x5_short, title="L5 Short", color=c_x5, offset=i_offset, show_last=i_showlast)
+
+// Функция отображения уровней на графике
+f_print(_y, _txt, _c) =>
+    t = time + ((i_offset + i_label_offset) * timeframe.multiplier * 60 * 1000)
+    label.new(t, _y, _txt, xloc.bar_time, yloc.price, color.white, label.style_none, _c, size.small)
+
+// Отображение подписей
+if barstate.islast
+    f_print(inputPrice, str.format("Base Price: {0}", inputPrice), c_base)
+    
+    if i_show_longs
+        if i_show_x1
+            f_print(x1_long, str.format("+{0}x: {1}", i_x1, x1_long), c_x1)
+        if i_show_x2
+            f_print(x2_long, str.format("+{0}x: {1}", i_x2, x2_long), c_x2)
+        if i_show_x3
+            f_print(x3_long, str.format("+{0}x: {1}", i_x3, x3_long), c_x3)
+        if i_show_x4
+            f_print(x4_long, str.format("+{0}x: {1}", i_x4, x4_long), c_x4)
+        if i_show_x5
+            f_print(x5_long, str.format("+{0}x: {1}", i_x5, x5_long), c_x5)
+            
+    if i_show_shorts
+        if i_show_x1
+            f_print(x1_short, str.format("-{0}x: {1}", i_x1, x1_short), c_x1)
+        if i_show_x2
+            f_print(x2_short, str.format("-{0}x: {1}", i_x2, x2_short), c_x2)
+        if i_show_x3
+            f_print(x3_short, str.format("-{0}x: {1}", i_x3, x3_short), c_x3)
+        if i_show_x4
+            f_print(x4_short, str.format("-{0}x: {1}", i_x4, x4_short), c_x4)
+        if i_show_x5
+            f_print(x5_short, str.format("-{0}x: {1}", i_x5, x5_short), c_x5)

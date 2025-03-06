@@ -1,0 +1,43 @@
+//
+// @author Mrgunkin [GitHub Profile](https://github.com/mrgunkin)
+//
+//@version=5
+indicator('BuySell vol', shorttitle='BuySell vol')
+
+// аргументы
+lookback = input(13)
+showMA = input(false)
+lengthMA = input(55)
+tickername = syminfo.tickerid
+p2 = close
+v2 = volume
+p1 = p2[lookback]
+v1 = v2[lookback]
+bc=input(true, 'Bar Coloring')
+
+// расчеты
+// цвета
+iff_1 = p2 < p1 and v2 > v1 ? #4CAF50 : #B2B5BE
+iff_2 = p2 < p1 and v2 < v1 ? #B2B5BE : iff_1
+iff_3 = p2 > p1 and v2 < v1 ? #B2B5BE : iff_2
+z = p2 > p1 and v2 > v1 ? #FF5252 : iff_3
+bc_color = z
+
+//фильтр объемы и биржа
+b1 = if tickername == 'INDEX:BTCUSD'
+    timeframe.period == '1' ? 400 : timeframe.period == '5' ? 600 : timeframe.period == '15' ? 725 : timeframe.period == '30' ? 1300 : timeframe.period == '60' ? 3000 : timeframe.period == '120' ? 5000 : timeframe.period == '240' ? 8000 : timeframe.period == 'D' ? 20000 : na
+else if tickername == 'BINANCE:BTCUSDT.P'
+    timeframe.period == '1' ? 1000 : timeframe.period == '5' ? 5000 : timeframe.period == '15' ? 10000 : timeframe.period == '30' ? 20000 : timeframe.period == '60' ? 40000 : timeframe.period == '120' ? 80000 : timeframe.period == '240' ? 120000 : timeframe.period == 'D' ? 600000 : na
+else if tickername == 'BINANCE:BTCUSDT'
+    timeframe.period == '1' ? 150 : timeframe.period == '5' ? 1000 : timeframe.period == '15' ? 1500 : timeframe.period == '30' ? 3000 : timeframe.period == '60' ? 6000 : timeframe.period == '120' ? 11000 : timeframe.period == '240' ? 15000 : timeframe.period == 'D' ? 50000 : na
+else if tickername == 'MEXC:BTCUSDT.P'
+    timeframe.period == '1' ? 4000000 : timeframe.period == '5' ? 15000000 : timeframe.period == '15' ? 30000000 : timeframe.period == '30' ? 50000000 : timeframe.period == '60' ? 90000000 : timeframe.period == '120' ? 190000000 : timeframe.period == '240' ? 300000000 : timeframe.period == 'D' ? 1500000000 : na
+else
+    na
+
+
+// вывод на экран
+plot(v2, style=plot.style_columns, color=z)
+plot(showMA ? ta.sma(volume,lengthMA) : na, style=plot.style_area, color=color.new(color.orange,60), title="Volume MA")
+plot(b1, color=color.new(color.orange, 40), linewidth=3)
+barcolor(bc ? bc_color : na)
