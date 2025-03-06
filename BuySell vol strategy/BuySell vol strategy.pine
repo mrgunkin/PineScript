@@ -1,0 +1,40 @@
+//@version=5
+strategy("BuySell vol strategy", overlay=false, initial_capital=3000, currency=currency.USD, default_qty_type=strategy.cash, default_qty_value=1000, pyramiding=3, commission_value=0.1)
+// отключение шортов
+strategy.risk.allow_entry_in(strategy.direction.long)
+// аргументы
+lookback = input(13)
+tickername = syminfo.tickerid
+p2 = close
+v2 = volume
+p1 = p2[lookback]
+v1 = v2[lookback]
+bc=input(true, 'Bar Coloring')
+
+// расчеты
+// цвета объемов
+iff_1 = p2 < p1 and v2 > v1 ? #4CAF50 : #B2B5BE
+iff_2 = p2 < p1 and v2 < v1 ? #B2B5BE : iff_1
+iff_3 = p2 > p1 and v2 < v1 ? #B2B5BE : iff_2
+z = p2 > p1 and v2 > v1 ? #FF5252 : iff_3
+bc_color = z
+
+
+//фильтр объемы и биржа
+b1 = if tickername == 'INDEX:BTCUSD'
+    timeframe.period == '1' ? 200 : timeframe.period == '3' ? 300 : timeframe.period == '5' ? 500 : timeframe.period == '15' ? 850 : timeframe.period == '30' ? 2000 : timeframe.period == '60' ? 3200 : timeframe.period == '120' ? 6500 : timeframe.period == '240' ? 10000 : timeframe.period == 'D' ? 35000 : na
+else
+    na
+
+//стратегия
+buy=p2 < p1 and v2 > v1 and v2 > b1
+sell=p2 > p1 and v2 > v1 and v2 > b1
+if buy
+    strategy.entry("Long", strategy.long)
+if sell
+    strategy.entry("Short", strategy.short)
+    
+// вывод на экран
+plot(v2, style=plot.style_columns, color=z)
+plot(b1, color=color.new(color.orange, 40), linewidth=3)
+barcolor(bc ? bc_color : na)

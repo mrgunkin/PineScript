@@ -1,0 +1,98 @@
+//@version=5
+//
+// @author MrGunkin 
+//
+indicator('Moon Phase and MA', overlay=true)
+
+//аргументы
+normalize(_v) =>
+    x = _v
+    x -= math.floor(x)
+    if x < 0
+        x += 1
+        x
+    x
+
+calcPhase(_year, _month, _day) =>
+
+    int y = na
+    int m = na
+    float k1 = na
+    float k2 = na
+    float k3 = na
+    float jd = na
+    float ip = na
+
+//расчеты
+    y := _year - math.floor((12 - _month) / 10)
+    m := _month + 9
+    if m >= 12
+        m -= 12
+        m
+
+    k1 := math.floor(365.25 * (y + 4712))
+    k2 := math.floor(30.6 * m + 0.5)
+    k3 := math.floor(math.floor(y / 100 + 49) * 0.75) - 38
+
+    jd := k1 + k2 + _day + 59
+    if jd > 2299160
+        jd -= k3
+        jd
+
+    ip := normalize((jd - 2451550.1) / 29.530588853)
+    age = ip * 29.53
+    age
+age = calcPhase(year, month, dayofmonth)
+moon = math.floor(age)[1] > math.floor(age) ? 1 : math.floor(age)[1] < 15 and math.floor(age) >= 15 ? -1 : na
+
+//аргументы MA
+MAtype = input.string(options=['sma', 'ema'], defval='sma', title='Choose MA type')
+show_1D_200MA = input(true, title='1D 200MA')
+show_1W_20MA = input(true, title='1W 20MA')
+show_1W_200MA = input(true, title='1W 200MA')
+show_custom_MA1 = input(false, title='Show 1 custom MA')
+custom_MA1 = input(13, title='1 custom MA Length')
+custom_TF1 = input.timeframe(title='1 custom MA Timeframe', defval='D')
+src = close
+shift = time + 5 * (time - time[1])
+
+//вывод на экран
+//луна
+plotshape(moon == 1, 'Новолуние', shape.circle, location.abovebar, color.new(color.red, 35), size=size.small, offset = 0, text='Новолуние', textcolor=color.new(color.red, 35))
+plotshape(moon == -1, 'Полнолуние', shape.circle, location.belowbar, color.new(color.green, 35), size=size.small, offset = 0, text='Полнолуние', textcolor=color.new(color.green, 35))
+
+//1D MA
+D1_ma200 = MAtype == 'sma' ? ta.sma(src, 200) : ta.ema(src, 200)
+out_D1_ma200 = request.security(syminfo.tickerid, 'D', D1_ma200, barmerge.gaps_off, barmerge.lookahead_on)
+plot(show_1D_200MA and out_D1_ma200 ? out_D1_ma200 : na, color=color.new(color.olive, 20), linewidth=2, title='MA200 1D')
+Label_D1_ma200 = show_1D_200MA and out_D1_ma200 > 0 ? label.new(bar_index, close, xloc=xloc.bar_time, style=label.style_none, textcolor=color.olive, text='MA200' + '-D') : na
+label.set_y(Label_D1_ma200, out_D1_ma200)
+label.set_x(Label_D1_ma200, shift)
+label.delete(Label_D1_ma200[1])
+
+//1W MA
+W1_ma20 = MAtype == 'sma' ? ta.sma(src, 20) : ta.ema(src, 20)
+W1_ma200 = MAtype == 'sma' ? ta.sma(src, 200) : ta.ema(src, 200)
+out_W1_ma20 = request.security(syminfo.tickerid, 'W', W1_ma20, barmerge.gaps_off, barmerge.lookahead_on)
+out_W1_ma200 = request.security(syminfo.tickerid, 'W', W1_ma200, barmerge.gaps_off, barmerge.lookahead_on)
+plot(show_1W_20MA and out_W1_ma20 ? out_W1_ma20 : na, color=color.new(color.orange, 35), linewidth=2, title='MA20 1W')
+plot(show_1W_200MA and out_W1_ma200 ? out_W1_ma200 : na, color=color.new(color.yellow, 40), linewidth=2, title='MA200 1W')
+Label_W1_ma20 = show_1W_20MA and out_W1_ma20 > 0 ? label.new(bar_index, close, xloc=xloc.bar_time, style=label.style_none, textcolor=color.new(color.orange, 35), text='MA20' + '-W') : na
+label.set_y(Label_W1_ma20, out_W1_ma20)
+label.set_x(Label_W1_ma20, shift)
+label.delete(Label_W1_ma20[1])
+Label_W1_ma200 = show_1W_200MA and out_W1_ma200 > 0 ? label.new(bar_index, close, xloc=xloc.bar_time, style=label.style_none, textcolor=color.new(color.yellow, 40), text='MA200' + '-W') : na
+label.set_y(Label_W1_ma200, out_W1_ma200)
+label.set_x(Label_W1_ma200, shift)
+label.delete(Label_W1_ma200[1])
+
+//custom 1
+MA_custom_ma1 = MAtype == 'sma' ? ta.sma(src, custom_MA1) : ta.ema(src, custom_MA1)
+out_custom_ma1 = request.security(syminfo.tickerid, custom_TF1, MA_custom_ma1, barmerge.gaps_off, barmerge.lookahead_on)
+plot(show_custom_MA1 and out_custom_ma1 ? out_custom_ma1 : na, color=color.new(color.red, 0), linewidth=2, title='1 Custom MA')
+custom1_MA_lenght_text = str.tostring(custom_MA1)
+Label_custom1_MA = show_custom_MA1 and out_custom_ma1 > 0 ? label.new(bar_index, close, xloc=xloc.bar_time, style=label.style_none, textcolor=color.red, text='MA' + custom1_MA_lenght_text + '-' + custom_TF1) : na
+label.set_y(Label_custom1_MA, out_custom_ma1)
+label.set_x(Label_custom1_MA, shift)
+label.delete(Label_custom1_MA[1])
+
